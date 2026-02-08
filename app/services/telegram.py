@@ -47,10 +47,10 @@ async def send_job_to_telegram(job: JobResult) -> bool:
     return True
 
 
-async def send_jobs_to_telegram(jobs: list[JobResult]) -> int:
+async def send_jobs_to_telegram(jobs: list[JobResult], limit: int = 7) -> int:
     """Send a list of job results to Telegram. Returns the count of successfully sent messages."""
     sent = 0
-    for job in jobs:
+    for job in jobs[:limit]:
         if await send_job_to_telegram(job):
             sent += 1
     return sent
