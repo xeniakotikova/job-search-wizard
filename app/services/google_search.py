@@ -11,16 +11,11 @@ SERPAPI_URL = "https://serpapi.com/search"
 
 
 async def search_jobs(query: str | None = None) -> list[JobResult]:
-    """Search for job vacancies using SerpAPI Google Jobs engine.
-
-    Uses the `chips=date_posted:today` parameter to restrict results to
-    today's postings so only fresh listings appear.
-    """
+    """Search for job vacancies using SerpAPI Google engine."""
     params = {
         "api_key": settings.serpapi_api_key,
-        "engine": "google_jobs",
+        "engine": "google",
         "q": query or settings.search_query,
-        "chips": "date_posted:today",
     }
 
     async with httpx.AsyncClient(timeout=30) as client:
@@ -35,22 +30,16 @@ async def search_jobs(query: str | None = None) -> list[JobResult]:
             return []
 
     data = response.json()
-    jobs = data.get("jobs_results", [])
+    jobs = data.get("organic_results", [])
 
     results: list[JobResult] = []
     for job in jobs:
-        apply_options = job.get("apply_options", [])
-        link = apply_options[0].get("link", "") if apply_options else ""
-
-        detected = job.get("detected_extensions", {})
-        date = detected.get("posted_at")
-
         results.append(
             JobResult(
                 title=job.get("title", "No title"),
-                description=job.get("description", "No description"),
-                link=link,
-                date=date,
+                description=job.get("snippet", "No description"),
+                link=job.get("link", ""),
+                date=job.get("date"),
             )
         )
 
