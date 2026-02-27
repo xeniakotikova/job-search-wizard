@@ -39,6 +39,16 @@ def start_scheduler() -> None:
     )
 
 
+def pause_scheduler() -> None:
+    scheduler.pause_job("job_search")
+    logger.info("Scheduler paused")
+
+
+def resume_scheduler() -> None:
+    scheduler.resume_job("job_search")
+    logger.info("Scheduler resumed")
+
+
 def stop_scheduler() -> None:
     scheduler.shutdown(wait=False)
     logger.info("Scheduler stopped")
