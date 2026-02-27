@@ -1,5 +1,5 @@
-import asyncio
 import logging
+from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -23,18 +23,14 @@ async def job_search_task() -> None:
     logger.info("Sent %d / %d results to Telegram", sent, len(jobs))
 
 
-def _run_task() -> None:
-    """Wrapper so APScheduler can fire the coroutine from its thread."""
-    asyncio.get_event_loop().create_task(job_search_task())
-
-
 def start_scheduler() -> None:
     scheduler.add_job(
-        _run_task,
+        job_search_task,
         "interval",
         minutes=settings.search_interval_minutes,
         id="job_search",
         replace_existing=True,
+        next_run_time=datetime.now(),
     )
     scheduler.start()
     logger.info(
