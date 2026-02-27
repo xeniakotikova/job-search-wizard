@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     telegram_chat_id: str
     search_query: str = "python developer vacancy"
     search_interval_minutes: int = 30
+    app_url: str = ""
 
     model_config = {"env_file": ".env"}
 

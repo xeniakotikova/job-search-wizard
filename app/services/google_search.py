@@ -26,9 +26,13 @@ async def search_jobs(query: str | None = None) -> list[JobResult]:
         "num": 10,
     }
 
+    headers = {}
+    if settings.app_url:
+        headers["Referer"] = settings.app_url
+
     async with httpx.AsyncClient(timeout=30) as client:
         try:
-            response = await client.get(GOOGLE_SEARCH_URL, params=params)
+            response = await client.get(GOOGLE_SEARCH_URL, params=params, headers=headers)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             logger.error("Google API HTTP error: %s — %s", exc.response.status_code, exc.response.text)
