@@ -46,6 +46,11 @@ def pause_scheduler() -> None:
 
 def resume_scheduler() -> None:
     scheduler.resume_job("job_search")
+    scheduler.reschedule_job(
+        "job_search",
+        trigger="interval",
+        minutes=settings.search_interval_minutes,
+    )
     logger.info("Scheduler resumed")
 
 
