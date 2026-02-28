@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import httpx
@@ -71,12 +72,46 @@ async def send_message(chat_id: str | int, text: str) -> bool:
     return True
 
 
+async def _post_with_backoff(
+    client: httpx.AsyncClient,
+    url: str,
+    payload: dict,
+    *,
+    retries: int = 3,
+    base_delay: float = 2.0,
+) -> httpx.Response:
+    """POST to a Telegram API endpoint, retrying on 429 with exponential backoff."""
+    for attempt in range(retries + 1):
+        response = await client.post(url, json=payload)
+        if response.status_code != 429 or attempt == retries:
+            return response
+        delay = base_delay * (2 ** attempt)  # 2s, 4s, 8s
+        logger.warning(
+            "Telegram API 429 Too Many Requests — retrying in %.0fs (attempt %d/%d)",
+            delay, attempt + 1, retries,
+        )
+        await asyncio.sleep(delay)
+    return response  # unreachable; satisfies type checkers
+
+
 async def setup_webhook(webhook_url: str) -> bool:
-    """Register the webhook URL with Telegram."""
-    url = (TELEGRAM_API_BASE + "/setWebhook").format(token=settings.telegram_bot_token)
+    """Register the webhook URL with Telegram, skipping if already set."""
+    token_url = TELEGRAM_API_BASE.format(token=settings.telegram_bot_token)
     async with httpx.AsyncClient(timeout=15) as client:
+        # Idempotency check: skip registration if URL is already correct
         try:
-            response = await client.post(url, json={"url": webhook_url})
+            info_response = await client.get(token_url + "/getWebhookInfo")
+            info_response.raise_for_status()
+            current_url = info_response.json().get("result", {}).get("url", "")
+            if current_url == webhook_url:
+                logger.info("Telegram webhook already set to correct URL, skipping registration")
+                return True
+        except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+            logger.warning("Could not verify current webhook URL: %s", exc)
+
+        # Register with retry on 429
+        try:
+            response = await _post_with_backoff(client, token_url + "/setWebhook", {"url": webhook_url})
             response.raise_for_status()
             data = response.json()
             if data.get("result"):
@@ -97,7 +132,7 @@ async def setup_bot_commands() -> bool:
     ]
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            response = await client.post(url, json={"commands": commands})
+            response = await _post_with_backoff(client, url, {"commands": commands})
             response.raise_for_status()
             data = response.json()
             if data.get("result"):
