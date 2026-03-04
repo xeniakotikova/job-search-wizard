@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app.config import settings
 from app.models import JobResult
@@ -62,6 +62,15 @@ async def trigger():
     return {"status": "triggered"}
 
 
+@app.get("/cron")
+async def cron(authorization: str | None = Header(default=None)):
+    """Called by Vercel Cron on schedule."""
+    if settings.cron_secret and authorization != f"Bearer {settings.cron_secret}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    print('cron started')
+    return {"status": "ok"}
+
+
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
     """Handle incoming Telegram updates (bot commands /pause and /resume)."""
@@ -86,3 +95,5 @@ async def telegram_webhook(request: Request):
         await send_message(chat_id, "Scheduler resumed. Job search is now active.")
 
     return {"ok": True}
+
+
