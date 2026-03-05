@@ -5,9 +5,9 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app.config import settings
 from app.models import JobResult
-from app.scheduler import job_search_task, pause_scheduler, resume_scheduler, start_scheduler, stop_scheduler
+from app.tasks import job_search_task
 from app.services.google_search import search_jobs
-from app.services.telegram import send_jobs_to_telegram, send_message, setup_bot_commands, setup_webhook
+from app.services.telegram import send_jobs_to_telegram, setup_bot_commands, setup_webhook
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,14 +18,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    start_scheduler()
     if settings.webhook_url:
         await setup_webhook(settings.webhook_url)
         await setup_bot_commands()
     logger.info("Application started")
     yield
-    stop_scheduler()
-    logger.info("Application stopped")
 
 
 app = FastAPI(
@@ -67,33 +64,22 @@ async def cron(authorization: str | None = Header(default=None)):
     """Called by Vercel Cron on schedule."""
     if settings.cron_secret and authorization != f"Bearer {settings.cron_secret}":
         raise HTTPException(status_code=401, detail="Unauthorized")
-    print('cron started')
+    await job_search_task()
     return {"status": "ok"}
 
 
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
-    """Handle incoming Telegram updates (bot commands /pause and /resume)."""
+    """Handle incoming Telegram updates."""
     data = await request.json()
 
     message = data.get("message") or data.get("edited_message")
     if not message:
         return {"ok": True}
 
-    chat_id = str(message.get("chat", {}).get("id", ""))
-    text = message.get("text", "")
-
     # Only handle commands from the configured chat
+    chat_id = str(message.get("chat", {}).get("id", ""))
     if chat_id != str(settings.telegram_chat_id):
         return {"ok": True}
 
-    if text.startswith("/pause"):
-        pause_scheduler()
-        await send_message(chat_id, "Scheduler paused. Use /resume to start again.")
-    elif text.startswith("/resume"):
-        resume_scheduler()
-        await send_message(chat_id, "Scheduler resumed. Job search is now active.")
-
     return {"ok": True}
-
-
