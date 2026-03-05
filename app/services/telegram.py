@@ -124,11 +124,10 @@ async def setup_webhook(webhook_url: str) -> bool:
 
 
 async def setup_bot_commands() -> bool:
-    """Register /pause and /resume as bot menu commands in Telegram."""
+    """Register bot menu commands in Telegram."""
     url = (TELEGRAM_API_BASE + "/setMyCommands").format(token=settings.telegram_bot_token)
     commands = [
-        {"command": "pause", "description": "Pause the scheduled job search"},
-        {"command": "resume", "description": "Resume the scheduled job search"},
+        {"command": "search", "description": "Run job search now"},
     ]
     async with httpx.AsyncClient(timeout=15) as client:
         try:
