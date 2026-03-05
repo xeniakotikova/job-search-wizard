@@ -10,7 +10,7 @@ class SupabaseSettings(BaseSettings):
     service_role_key: str
     jwt_secret: str | None = None
 
-    model_config = ConfigDict(env_file=_ENV_FILE, env_prefix="SUPABASE_")
+    model_config = ConfigDict(env_file=_ENV_FILE, env_prefix="SUPABASE_", extra="ignore")
 
 
 class PostgresSettings(BaseSettings):
@@ -22,7 +22,7 @@ class PostgresSettings(BaseSettings):
     host: str | None = None
     database: str | None = None
 
-    model_config = ConfigDict(env_file=_ENV_FILE, env_prefix="POSTGRES_")
+    model_config = ConfigDict(env_file=_ENV_FILE, env_prefix="POSTGRES_", extra="ignore")
 
 
 class Settings(BaseSettings):
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     search_query: str = "python developer vacancy"
     webhook_url: str | None = None
 
-    model_config = ConfigDict(env_file=_ENV_FILE)
+    model_config = ConfigDict(env_file=_ENV_FILE, extra="ignore")
 
 
 settings = Settings()
