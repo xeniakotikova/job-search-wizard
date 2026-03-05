@@ -30,7 +30,6 @@ class Settings(BaseSettings):
     telegram_bot_token: str
     telegram_chat_id: str
     search_query: str = "python developer vacancy"
-    search_interval_minutes: int = 30
     webhook_url: str | None = None
 
     model_config = ConfigDict(env_file=_ENV_FILE)
