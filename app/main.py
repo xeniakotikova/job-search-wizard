@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from app.config import settings
+from app.database import init_db
 from app.models import JobResult
 from app.tasks import job_search_task
 from app.services.google_search import search_jobs
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
     if settings.webhook_url:
         await setup_webhook(settings.webhook_url)
         await setup_bot_commands()
